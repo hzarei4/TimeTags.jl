@@ -1,0 +1,4 @@
+name = "TimeTags"
+uuid = "fb990a81-4019-428b-a49d-d11d1f52c957"
+authors = ["RainerHeintzmann <heintzmann@gmail.com>"]
+version = "0.1.0"

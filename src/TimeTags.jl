@@ -9,7 +9,7 @@
 module TimeTags
 
 using Printf, ProgressMeter
-export read_ptu
+export read_ptu, get_time_conversion
 
 """
     read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
@@ -254,15 +254,7 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
 end
 
 function get_time_conversion()
-    global isT2;
-    global MeasDesc_GlobalResolution;
-    if(isT2)
-        # Edited: formatting changed by PK
-        MeasDesc_GlobalResolution * 1e12;
-    else
-        # Edited: formatting changed by PK
-        MeasDesc_GlobalResolution * 1e9
-    end;
+    return MeasDesc_GlobalResolution;
 end
 
 # ## Got Photon

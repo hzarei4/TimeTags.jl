@@ -2,3 +2,7 @@ name = "TimeTags"
 uuid = "fb990a81-4019-428b-a49d-d11d1f52c957"
 authors = ["RainerHeintzmann <heintzmann@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"

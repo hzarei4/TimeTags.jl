@@ -1,4 +1,3 @@
-module TimeTags
 """
     Tools for reading an processing PicoQuant `.ptu` time-tagged (list-mode) time correlated single photon counting (TCSPC) data.
 
@@ -7,8 +6,10 @@ module TimeTags
     Note that it (like the Matlab version) uses eval commands, which makes it dangerous for code injection.
 
 """
+module TimeTags
 
 using Printf, ProgressMeter
+export read_ptu
 
 """
     read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
@@ -222,20 +223,7 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
         close(fid)
         error("Illegal RecordType $(TTResultFormat_TTTRRecType)!");
     end;
-    print("\nWriting data to $(outfile)");
     print("\nThis may take a while...");
-    # write Header
-    # if (isT2)
-    #     print(fpout, "  record# Type Ch        TimeTag             TrueTime/ps\n");
-    # else
-    #     print(fpout, "  record# Type Ch        TimeTag             TrueTime/ns            DTime\n");
-    # end;
-    global cnt_ph;
-    global cnt_ov;
-    global cnt_ma;
-    cnt_ph = 0;
-    cnt_ov = 0;
-    cnt_ma = 0;
     # choose right decode function
     if TTResultFormat_TTTRRecType == rtPicoHarpT3
             ReadPT3(fid, TTResult_NumberOfRecords);
@@ -243,18 +231,18 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
             return 
     elseif TTResultFormat_TTTRRecType == rtPicoHarpT2
             isT2 = true;
-            ReadPT2(fid, TTResult_NumberOfRecords);
+            return ReadPT2(fid, TTResult_NumberOfRecords);
     elseif TTResultFormat_TTTRRecType == rtHydraHarpT3
-            ReadHT3(1, fid, TTResult_NumberOfRecords);
+            return ReadHT3(1, fid, TTResult_NumberOfRecords);
     elseif TTResultFormat_TTTRRecType == rtHydraHarpT2
             isT2 = true;
-            ReadHT2(1, fid, TTResult_NumberOfRecords);
+            return ReadHT2(1, fid, TTResult_NumberOfRecords);
     elseif TTResultFormat_TTTRRecType in (rtMultiHarpT3, rtHydraHarp2T3, rtTimeHarp260NT3, rtTimeHarp260PT3)
             isT2 = false;
-            ReadHT3(2, fid, TTResult_NumberOfRecords);
+            return ReadHT3(2, fid, TTResult_NumberOfRecords);
     elseif TTResultFormat_TTTRRecType in (rtMultiHarpT2, rtHydraHarp2T2, rtTimeHarp260NT2, rtTimeHarp260PT2)
             isT2 = true;
-            ReadHT2(2, fid, TTResult_NumberOfRecords);
+            return ReadHT2(2, fid, TTResult_NumberOfRecords);
     else
         close(fid)
         error("Illegal RecordType $(TTResultFormat_TTTRRecType)!");
@@ -264,47 +252,59 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
     # print("\n$(cnt_ph) photons, $(cnt_ov) overflows, $(cnt_ma) markers.")
     # print("\n");
 end
-    
-## Got Photon
-#   TimeTag: Raw TimeTag from Record * Globalresolution = Real Time arrival of Photon
-#    DTime: Arrival time of Photon after last Sync event (T3 only) DTime * Resolution = Real time arrival of Photon after last Sync event
-#    Channel: Channel the Photon arrived (0 = Sync channel for T2 measurements)
-function GotPhoton(TimeTag, Channel, DTime)
+
+function get_time_conversion()
     global isT2;
-    global RecNum;
     global MeasDesc_GlobalResolution;
-    global cnt_ph;
-    cnt_ph = cnt_ph + 1;
     if(isT2)
         # Edited: formatting changed by PK
-        @printf(fpout,"\n%10i CHN %i %18.0f (%0.1f ps)" , RecNum, Channel, TimeTag, (TimeTag * MeasDesc_GlobalResolution * 1e12));
+        MeasDesc_GlobalResolution * 1e12;
     else
         # Edited: formatting changed by PK
-        @printf(fpout,"\n%10i CHN %i %18.0f (%0.1f ns) %ich", RecNum, Channel, TimeTag, (TimeTag * MeasDesc_GlobalResolution * 1e9), DTime);
+        MeasDesc_GlobalResolution * 1e9
     end;
 end
 
-## Got Marker
-#    TimeTag: Raw TimeTag from Record * Globalresolution = Real Time arrival of Photon
-#    Markers: Bitfield of arrived Markers, different markers can arrive at same time (same record)
-function GotMarker(TimeTag, Markers)
-    global RecNum;
-    global cnt_ma;
-    global MeasDesc_GlobalResolution;
-    cnt_ma = cnt_ma + 1;
-    # Edited: formatting changed by PK
-    @printf(fpout,"\n%10i MAR %i %18.0f (%0.1f ns)", RecNum, Markers, TimeTag, (TimeTag * MeasDesc_GlobalResolution * 1e9));
-end
+# ## Got Photon
+# #   TimeTag: Raw TimeTag from Record * Globalresolution = Real Time arrival of Photon
+# #    DTime: Arrival time of Photon after last Sync event (T3 only) DTime * Resolution = Real time arrival of Photon after last Sync event
+# #    Channel: Channel the Photon arrived (0 = Sync channel for T2 measurements)
+# function GotPhoton(TimeTag, Channel, DTime)
+#     global isT2;
+#     global RecNum;
+#     global MeasDesc_GlobalResolution;
+#     global cnt_ph;
+#     cnt_ph = cnt_ph + 1;
+#     if(isT2)
+#         # Edited: formatting changed by PK
+#         @printf(fpout,"\n%10i CHN %i %18.0f (%0.1f ps)" , RecNum, Channel, TimeTag, (TimeTag * MeasDesc_GlobalResolution * 1e12));
+#     else
+#         # Edited: formatting changed by PK
+#         @printf(fpout,"\n%10i CHN %i %18.0f (%0.1f ns) %ich", RecNum, Channel, TimeTag, (TimeTag * MeasDesc_GlobalResolution * 1e9), DTime);
+#     end;
+# end
 
-## Got Overflow
-#  Count: Some TCSPC provide Overflow compression = if no Photons between overflow you get one record for multiple Overflows
-function GotOverflow(Count)
-    global RecNum;
-    global cnt_ov;
-    cnt_ov = cnt_ov + Count;
-    # Edited: formatting changed by PK
-    @printf(fpout,"\n%10i OFL * %i", RecNum, Count);
-end
+# ## Got Marker
+# #    TimeTag: Raw TimeTag from Record * Globalresolution = Real Time arrival of Photon
+# #    Markers: Bitfield of arrived Markers, different markers can arrive at same time (same record)
+# function GotMarker(TimeTag, Markers)
+#     global RecNum;
+#     global cnt_ma;
+#     global MeasDesc_GlobalResolution;
+#     cnt_ma = cnt_ma + 1;
+#     # Edited: formatting changed by PK
+#     @printf(fpout,"\n%10i MAR %i %18.0f (%0.1f ns)", RecNum, Markers, TimeTag, (TimeTag * MeasDesc_GlobalResolution * 1e9));
+# end
+
+# ## Got Overflow
+# #  Count: Some TCSPC provide Overflow compression = if no Photons between overflow you get one record for multiple Overflows
+# function GotOverflow(Count)
+#     global RecNum;
+#     global cnt_ov;
+#     cnt_ov = cnt_ov + Count;
+#     # Edited: formatting changed by PK
+#     @printf(fpout,"\n%10i OFL * %i", RecNum, Count);
+# end
 
 ## Decoder functions
 
@@ -313,7 +313,7 @@ function ReadPT3(fid, TTResult_NumberOfRecords)
     ofltime = 0;
     WRAPAROUND=65536;
     channels = zeros(UInt8, TTResult_NumberOfRecords)
-    time_tags = zeros(UInt32, TTResult_NumberOfRecords)
+    time_tags = zeros(UInt64, TTResult_NumberOfRecords)
     dtimes = zeros(UInt16, TTResult_NumberOfRecords)
 
     @showprogress for i=1:TTResult_NumberOfRecords
@@ -354,7 +354,7 @@ function ReadPT3(fid, TTResult_NumberOfRecords)
                     # GotMarker(truensync, markers);
                 end
             else
-                print(fpout,"Err ")
+                @warn("wrong record tag")
             end
         end
     end
@@ -366,16 +366,16 @@ function ReadPT2(fid, TTResult_NumberOfRecords)
     ofltime = 0
     WRAPAROUND=210698240
     channels = zeros(UInt8, TTResult_NumberOfRecords)
-    time_tags = zeros(UInt32, TTResult_NumberOfRecords)
+    time_tags = zeros(UInt64, TTResult_NumberOfRecords)
 
-    @showprogress for i=1:TTResult_NumberOfRecords
+    for i=1:TTResult_NumberOfRecords # @showprogress 
         T2Record = read(fid, UInt32)
         T2time = T2Record & 268435455;            #the lowest 28 bits
         chan = (T2Record >> 28) & 15      #the next 4 bits
         timetag = T2time + ofltime
         if (chan >= 0) && (chan <= 4)
             channels[i] = chan
-            time_tags[i] = truensync
+            time_tags[i] = timetag
             # GotPhoton(timetag, chan, 0)
         else
             if chan == 15
@@ -390,8 +390,8 @@ function ReadPT2(fid, TTResult_NumberOfRecords)
                     time_tags[i] = timetag
                     # GotMarker(timetag, markers)
                 end
-            els
-                print(fpout,"Err")
+            else
+                @warn("wrong record tag")
             end
         end
         # Strictly, in case of a marker, the lower 4 bits of time are invalid
@@ -407,7 +407,7 @@ function ReadHT3(Version, fid, TTResult_NumberOfRecords)
     OverflowCorrection = 0;
     T3WRAPAROUND = 1024;
     channels = zeros(UInt8, TTResult_NumberOfRecords)
-    time_tags = zeros(UInt32, TTResult_NumberOfRecords)
+    time_tags = zeros(UInt64, TTResult_NumberOfRecords)
     dtime = zeros(UInt16, TTResult_NumberOfRecords)
 
     for i = 1:TTResult_NumberOfRecords
@@ -473,7 +473,7 @@ function ReadHT2(Version, fid, TTResult_NumberOfRecords)
     T2WRAPAROUND_V1=33552000;
     T2WRAPAROUND_V2=33554432; # = 2^25  IMPORTANT! THIS IS NEW IN FORMAT V2.0
     channels = zeros(UInt8, TTResult_NumberOfRecords)
-    time_tags = zeros(UInt16, TTResult_NumberOfRecords)
+    time_tags = zeros(UInt64, TTResult_NumberOfRecords)
 
     for i=1:TTResult_NumberOfRecords
         RecNum = i;
@@ -497,7 +497,7 @@ function ReadHT2(Version, fid, TTResult_NumberOfRecords)
         timetag = OverflowCorrection + dtime;
         if special == 0   # this means a regular photon record
             channels[i] = chan
-            time_tags[i] = truensync
+            time_tags[i] = timetag
             # GotPhoton(timetag, channel + 1, 0)
         else    # this means we have a special record
             if channel == 63  # overflow of dtime occured

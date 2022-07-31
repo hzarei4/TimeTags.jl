@@ -28,7 +28,7 @@ rel_time = (time_tags[2:N_max].-time_tags[1:N_max-1])
 
 plot(time_tags[1:10:600000])
 ###
-q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\DaisyPollen_cells_FLIM.ptu", marker_channel_y=19);
+q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\DaisyPollen_cells_FLIM.ptu", marker_channel_y=21);
 # 200x200
 
 q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\FRET_GFP_and_mRFP.ptu");
@@ -36,3 +36,4 @@ q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\FRET_GFP_and_mRFP.ptu"
 
 q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\CENP-labelled_cells_for_FRET.ptu");
 # 512x512
+

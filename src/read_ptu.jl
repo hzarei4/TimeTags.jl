@@ -1,3 +1,4 @@
+
 """
     read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
 
@@ -56,16 +57,16 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
     rtMultiHarpT2    = 0x00010207 # (SubID = $00 ,RecFmt: $01) (V1), T-Mode: $02 (T2), HW: $07 (MultiHarp)
 
     # Globals for subroutines
-    global fid
-    global TTResultFormat_TTTRRecType;
-    global TTResult_NumberOfRecords; # Number of TTTR Records in the File;
-    global MeasDesc_Resolution;      # Resolution for the Dtime (T3 Only)
-    global MeasDesc_GlobalResolution;
+    # fid
+    # TTResultFormat_TTTRRecType;
+    # TTResult_NumberOfRecords; # Number of TTTR Records in the File;
+    # MeasDesc_Resolution;      # Resolution for the Dtime (T3 Only)
 
     TTResultFormat_TTTRRecType = 0;
     TTResult_NumberOfRecords = 0;
-    MeasDesc_Resolution = 0;
-    MeasDesc_GlobalResolution = 0;
+    # MeasDesc_Resolution = 0;
+    # MeasDesc_GlobalResolution = 0;
+    global MeasDesc_GlobalResolution = 0.0; # needs to be accessed by get_time_conversion()
 
     # start Main program
     pathname, filename  = splitdir(full_filename) # uigetfile('*.ptu', 'T-Mode data:');
@@ -77,7 +78,9 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
         error("Magic invalid, this is not an PTU file.");
     end;
     Version = read(fid, 8);
+    Version = Version[Version .!= 0]; # remove #0 and more more readable
     println("Tag Version: $(String(Version))");
+    TTResult_NumberOfRecords = nothing
 
     # there is no repeat.. until (or do..while) construct so we use
     # while 1 ... if (expr) break; end; end;
@@ -90,6 +93,7 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
                                             # TagHead.Value will be read in the
                                             # right type function
         TagIdent = String(TagIdent) # genvarname(TagIdent);    # remove all illegal characters
+        TagIdent = replace(TagIdent, !isascii=>' ')
         if TagIdx > -1
             EvalName = TagIdent*"($(TagIdx + 1))";
         else
@@ -97,7 +101,6 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
         end
         @printf("\n   %-40s", EvalName)
         # check Typ of Header
-        try
         if TagTyp == tyEmpty8
                 read(fid, Int64)
                 print("<Empty>")
@@ -105,27 +108,29 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
                 TagInt = read(fid, Int64);
                 if TagInt==0
                     print("FALSE");
-                    eval(Meta.parse("$(EvalName)=false"))
                 else
                     print("TRUE");
-                    eval(Meta.parse("$(EvalName)=true"))
                 end
         elseif  TagTyp ==  tyInt8
                 TagInt = read(fid, Int64);
-                print(TagInt);
-                eval(Meta.parse("$(EvalName)=$(TagInt)"))
+                @printf("%d", TagInt);
+                if EvalName == "TTResult_NumberOfRecords"
+                    TTResult_NumberOfRecords = TagInt
+                elseif EvalName == "TTResultFormat_TTTRRecType"
+                    TTResultFormat_TTTRRecType = TagInt
+                end
         elseif  TagTyp == tyBitSet64
                 TagInt = read(fid, Int64);
                 @printf("%X", TagInt);
-                eval(Meta.parse("$(EvalName)=$(TagInt)"))
         elseif  TagTyp == tyColor8
                 TagInt = read(fid, Int64);
                 @printf("%X", TagInt);
-                eval(Meta.parse("$(EvalName)=$(TagInt)"))
         elseif  TagTyp == tyFloat8
                 TagFloat = read(fid, Float64);
                 @printf("%e", TagFloat);
-                eval(Meta.parse("$(EvalName)=$(TagFloat)"))
+                if EvalName == "MeasDesc_GlobalResolution"
+                    MeasDesc_GlobalResolution = TagFloat
+                end
         elseif  TagTyp == tyFloat8Array
                 TagInt = read(fid, Int64);
                 print("<Float array with $(TagInt / 8) Entries>")
@@ -133,34 +138,32 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
         elseif  TagTyp == tyTDateTime
                 TagFloat = read(fid, Float64);
                 #fprintf(1, '%s', datestr(datenum(1899,12,30)+TagFloat)); # display as Date String
-                # eval([EvalName '=datenum(1899,12,30)+TagFloat;']); # but keep in memory as Date Number
         elseif  TagTyp == tyAnsiString
                 TagInt = read(fid, Int64);
-                TagString = String(read(fid, TagInt))
-                # TagString = TagString[TagString .!= 0]
+                TagString = read(fid, TagInt)
+                TagString = String(TagString[TagString .!= 0])
+                # TagString = replace(TagString, !isascii=>' ')
                 if TagIdx > -1
                     EvalName = "$(TagIdent){$(TagIdx + 1)}"
                 end;
-                #println("$(EvalName) = $(TagString)")
-                eval(Meta.parse("$(EvalName) = \"$(TagString)\""))
+                println("$(TagString)")
         elseif TagTyp == tyWideString
                 # Just read and remove the 0's (up to current (2012))
                 TagInt = read(fid, Int64)
                 TagString = read(fid, TagInt)
+                TagString = String(TagString[TagString .!= 0])
+                # TagString = replace(TagString, !isascii=>' ')
                 #TagString = TagString[TagString .!= 0]
-                #print(TagString)
+                println("$(TagString)")
                 if TagIdx > -1
                     EvalName = "$(TagIdent){$(TagIdx + 1)}"
                 end;
-                eval(Meta.parse("$(EvalName)=\"$(TagString)\""))
         elseif  TagTyp == tyBinaryBlob
                 TagInt = read(fid, Int64)
                 fprintf("<Binary Blob with $(TagInt) Bytes>")
                 seek(fid, TagInt)
         else
                 error("Illegal Type identifier found! Broken file?")
-        end
-        catch e
         end
         if TagIdent == "Header_End"
             break

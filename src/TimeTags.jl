@@ -8,8 +8,8 @@
 """
 module TimeTags
 
-using Printf, ProgressMeter
-export read_ptu, get_time_conversion, read_flim
+using Printf, ProgressMeter, FindShift, NDTools
+export read_ptu, get_time_conversion, read_flim, get_interlace, get_t_mean
 
 include("read_ptu.jl")
 include("read_FLIM.jl")

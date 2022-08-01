@@ -22,7 +22,7 @@ function process_flim(channels, time_tags, dtimes; sx = 350, sy = 201, data_chan
     # sy = ny + 1
     @show sy
     sz = nz
-    flim_img = zeros(UInt32, (sx,sy,sz,bins))
+    flim_img = zeros(Int32, (sx,sy,sz,bins))
     x=y=z=1
     t_start = time_tags[1]
     # look for the first two line tags
@@ -35,7 +35,7 @@ function process_flim(channels, time_tags, dtimes; sx = 350, sy = 201, data_chan
     y = 1
     my_y = 1
     # @showprogress for (ch,tt) in zip(channels, time_tags)  #(ch, tt, dt) in zip(channels, time_tags, dtimes)
-    #     flim_img[1,1,1,1] = one(UInt32)
+    #     flim_img[1,1,1,1] = one(Int32)
     # end
     # return flim_img
     @showprogress for (ch,tt) in zip(channels, time_tags)  #(ch, tt, dt) in zip(channels, time_tags, dtimes)
@@ -65,7 +65,7 @@ function process_flim(channels, time_tags, dtimes; sx = 350, sy = 201, data_chan
             dt = dtimes[n]
             bin = 1 + floor(Int32,dt/T_bin)
             # flim_img[1,1,1,1] = 1 # += one(dtype)
-            flim_img[x,my_y,z,bin] += one(UInt32)
+            flim_img[x,my_y,z,bin] += one(Int32)
         elseif (ch == marker_channel_y) # new line
             y += 1
             t_start = time_tags[n] # tt

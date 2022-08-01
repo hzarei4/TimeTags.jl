@@ -27,13 +27,20 @@ N_max = 2000
 rel_time = (time_tags[2:N_max].-time_tags[1:N_max-1]) 
 
 plot(time_tags[1:10:600000])
+
 ###
-q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\DaisyPollen_cells_FLIM.ptu", marker_channel_y=21);
+
+using View5D
+q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\DaisyPollen_cells_FLIM.ptu", sx = 350, marker_channel_y=21, tag_offset = 48.234); 
 # 200x200
+@vv cat(sum(q, dims=4), get_t_mean(q),dims=4)
+@vv q[:,:,:,80:end,:]
 
-q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\FRET_GFP_and_mRFP.ptu");
+q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\FRET_GFP_and_mRFP.ptu",  sx = 350, marker_channel_y=21, tag_offset = 48.234);
 # 256x256
+@vv sum(q, dims=(3,4))
 
-q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\CENP-labelled_cells_for_FRET.ptu");
+q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\CENP-labelled_cells_for_FRET.ptu",  sx = 350, data_channel=3, marker_channel_y=21);
 # 512x512
+@vv sum(q, dims=(3,4))
 

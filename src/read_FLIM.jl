@@ -136,7 +136,7 @@ function get_interlace(img)
 end
 
 function get_t_mean(img)
-    pos_h = reorient(1:size(img,4), 4)
+    pos_h = reorient(1:size(img,4), 4, Val(4))
     simg = sum(img, dims=4)[:,:,:,1]    
     return sum(img .* pos_h, dims=4)[:,:,:,1] ./ simg
 end

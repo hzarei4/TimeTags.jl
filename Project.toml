@@ -3,6 +3,11 @@ uuid = "fb990a81-4019-428b-a49d-d11d1f52c957"
 authors = ["RainerHeintzmann <heintzmann@gmail.com>"]
 version = "0.1.0"
 
+[compat]
+NDTools = "0.5"
+FindShift = "0.1.0"
+julia = "1.6, 1.7"
+
 [deps]
 FindShift = "643ec891-bf64-479f-8088-26ff5ce1b396"
 NDTools = "98581153-e998-4eef-8d0d-5ec2c052313d"

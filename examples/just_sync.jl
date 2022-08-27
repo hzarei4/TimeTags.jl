@@ -33,8 +33,8 @@ plot(time_tags[1:10:600000])
 using View5D
 q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\DaisyPollen_cells_FLIM.ptu", sx = 350, marker_channel_y=21, tag_offset = 48.234); 
 # 200x200
+q = q[:,:,:,80:end,:]
 @vv cat(sum(q, dims=4), get_t_mean(q),dims=4)
-@vv q[:,:,:,80:end,:]
 
 q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\FRET_GFP_and_mRFP.ptu",  sx = 350, marker_channel_y=21, tag_offset = 48.234);
 # 256x256

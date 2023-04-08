@@ -44,3 +44,7 @@ q = read_flim(raw"C:\NoBackup\Data\FLIM\FRET_GFP_and_mRFP\CENP-labelled_cells_fo
 # 512x512
 @vv sum(q, dims=(3,4))
 
+q = read_flim(raw"C:\NoBackup\Data\FLIM\LSM_40.pt3",  sx = 256, data_channel=2, marker_channel_y=18, is_bidirectional=false);
+q2 = reshape(q[:,1:14080,:,:], (256,256,55,128));
+@vv sum(q2,dims=(3,4))
+# q = read_flim(raw"C:\NoBackup\Data\FLIM\LSM_40.pt3",  sx = 256);

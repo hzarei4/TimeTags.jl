@@ -1,35 +1,3 @@
-
-"""
-    read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
-
-    reads a .ptu file from `full_filename`.
-    The time-tagged data is retuned as a tuble of two arrays.
-    A `UInt8` array of the channels and a `Float64` array of the timings.
-    The environment needs the packages `Printf` and `ProgressMeter` installed (`]add Prinf, ProgressMeter`).
-# Arguments
-+ full_filename:    full filename including path and file extension `.ptu` of the file to process
-"""
-function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
-    # This is demo code. Use at your own risk. No warranties.
-    # Marcus Sackrow, PicoQuant GmbH, December 2013
-    # Peter Kapusta, PicoQuant GmbH, November 2016
-    # Edited script: text output formatting changed by KAP.
-    # Julia Tranlation: Rainer Heintzmann
-    
-    #  Note that marker events have a lower time resolution and may therefore appear
-    #  in the file slightly out of order with respect to regular (photon) event records.
-    #  This is by design. Markers are designed only for relatively coarse
-    #  synchronization requirements such as image scanning.
-    
-    #  T Mode data are written to an output file [filename].out
-    #  We do not keep it in memory because of the huge amout of memory
-    #  this would take in case of large files. Of course you can change this,
-    #  e.g. if your files are not too big.
-    #  Otherwise it is best process the data on the fly and keep only the results.
-    
-    #  All HeaderData are introduced as Variable to Matlab and can directly be
-    #  used for further analysis
-    
     # some constants
     tyEmpty8      = 0xFFFF0008
     tyBool8       = 0x00000008
@@ -62,115 +30,49 @@ function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
     # TTResult_NumberOfRecords; # Number of TTTR Records in the File;
     # MeasDesc_Resolution;      # Resolution for the Dtime (T3 Only)
 
-    TTResultFormat_TTTRRecType = 0;
-    TTResult_NumberOfRecords = 0;
-    # MeasDesc_Resolution = 0;
-    # MeasDesc_GlobalResolution = 0;
+
+
+"""
+    read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
+
+    reads a .ptu file from `full_filename`.
+    The time-tagged data is retuned as a tuble of two arrays.
+    A `UInt8` array of the channels and a `Float64` array of the timings.
+    The environment needs the packages `Printf` and `ProgressMeter` installed (`]add Prinf, ProgressMeter`).
+# Arguments
++ full_filename:    full filename including path and file extension `.ptu` of the file to process
+"""
+function read_ptu(full_filename) # Read PicoQuant Unified TTTR Files
+    # This is demo code. Use at your own risk. No warranties.
+    # Marcus Sackrow, PicoQuant GmbH, December 2013
+    # Peter Kapusta, PicoQuant GmbH, November 2016
+    # Edited script: text output formatting changed by KAP.
+    # Julia Tranlation: Rainer Heintzmann
+    
+    #  Note that marker events have a lower time resolution and may therefore appear
+    #  in the file slightly out of order with respect to regular (photon) event records.
+    #  This is by design. Markers are designed only for relatively coarse
+    #  synchronization requirements such as image scanning.
+    
+    #  T Mode data are written to an output file [filename].out
+    #  We do not keep it in memory because of the huge amout of memory
+    #  this would take in case of large files. Of course you can change this,
+    #  e.g. if your files are not too big.
+    #  Otherwise it is best process the data on the fly and keep only the results.
+    
+    #  All HeaderData are introduced as Variable to Matlab and can directly be
+    #  used for further analysis
+    
     global MeasDesc_GlobalResolution = 0.0; # needs to be accessed by get_time_conversion()
 
     # start Main program
     pathname, filename  = splitdir(full_filename) # uigetfile('*.ptu', 'T-Mode data:');
     fid = open(joinpath(pathname,filename))
-
-    print("1\n");
-    Magic = read(fid, 8); # , uint8
-    if !("PQTTTR" == String(Magic)[1:6])
-        error("Magic invalid, this is not an PTU file.");
-    end;
-    Version = read(fid, 8);
-    Version = Version[Version .!= 0]; # remove #0 and more more readable
-    println("Tag Version: $(String(Version))");
-    TTResult_NumberOfRecords = nothing
-
-    # there is no repeat.. until (or do..while) construct so we use
-    # while 1 ... if (expr) break; end; end;
-    while true
-        # read Tag Head
-        TagIdent = read(fid, 32); # TagHead.Ident
-        TagIdent = TagIdent[TagIdent .!= 0]; # remove #0 and more more readable
-        TagIdx = read(fid, Int32);    # TagHead.Idx
-        TagTyp = read(fid, UInt32);   # TagHead.Typ
-                                            # TagHead.Value will be read in the
-                                            # right type function
-        TagIdent = String(TagIdent) # genvarname(TagIdent);    # remove all illegal characters
-        TagIdent = replace(TagIdent, !isascii=>' ')
-        if TagIdx > -1
-            EvalName = TagIdent*"($(TagIdx + 1))";
-        else
-            EvalName = TagIdent
-        end
-        @printf("\n   %-40s", EvalName)
-        # check Typ of Header
-        if TagTyp == tyEmpty8
-                read(fid, Int64)
-                print("<Empty>")
-        elseif  TagTyp == tyBool8
-                TagInt = read(fid, Int64);
-                if TagInt==0
-                    print("FALSE");
-                else
-                    print("TRUE");
-                end
-        elseif  TagTyp ==  tyInt8
-                TagInt = read(fid, Int64);
-                @printf("%d", TagInt);
-                if EvalName == "TTResult_NumberOfRecords"
-                    TTResult_NumberOfRecords = TagInt
-                elseif EvalName == "TTResultFormat_TTTRRecType"
-                    TTResultFormat_TTTRRecType = TagInt
-                end
-        elseif  TagTyp == tyBitSet64
-                TagInt = read(fid, Int64);
-                @printf("%X", TagInt);
-        elseif  TagTyp == tyColor8
-                TagInt = read(fid, Int64);
-                @printf("%X", TagInt);
-        elseif  TagTyp == tyFloat8
-                TagFloat = read(fid, Float64);
-                @printf("%e", TagFloat);
-                if EvalName == "MeasDesc_GlobalResolution"
-                    MeasDesc_GlobalResolution = TagFloat
-                end
-        elseif  TagTyp == tyFloat8Array
-                TagInt = read(fid, Int64);
-                print("<Float array with $(TagInt / 8) Entries>")
-                fseek(fid, TagInt);
-        elseif  TagTyp == tyTDateTime
-                TagFloat = read(fid, Float64);
-                #fprintf(1, '%s', datestr(datenum(1899,12,30)+TagFloat)); # display as Date String
-        elseif  TagTyp == tyAnsiString
-                TagInt = read(fid, Int64);
-                TagString = read(fid, TagInt)
-                TagString = String(TagString[TagString .!= 0])
-                # TagString = replace(TagString, !isascii=>' ')
-                if TagIdx > -1
-                    EvalName = "$(TagIdent){$(TagIdx + 1)}"
-                end;
-                println("$(TagString)")
-        elseif TagTyp == tyWideString
-                # Just read and remove the 0's (up to current (2012))
-                TagInt = read(fid, Int64)
-                TagString = read(fid, TagInt)
-                TagString = String(TagString[TagString .!= 0])
-                # TagString = replace(TagString, !isascii=>' ')
-                #TagString = TagString[TagString .!= 0]
-                println("$(TagString)")
-                if TagIdx > -1
-                    EvalName = "$(TagIdent){$(TagIdx + 1)}"
-                end;
-        elseif  TagTyp == tyBinaryBlob
-                TagInt = read(fid, Int64)
-                fprintf("<Binary Blob with $(TagInt) Bytes>")
-                seek(fid, TagInt)
-        else
-                error("Illegal Type identifier found! Broken file?")
-        end
-        if TagIdent == "Header_End"
-            break
-        end
+    if filename[end-3:end] == ".pt3"
+        TTResultFormat_TTTRRecType, TTResult_NumberOfRecords = read_pt3_header(fid)
+    else
+        TTResultFormat_TTTRRecType, TTResult_NumberOfRecords = read_ptu_header(fid)
     end
-    print("\n----------------------\n");
-
     # Check recordtype
     global isT2;
     if TTResultFormat_TTTRRecType == rtPicoHarpT3
@@ -520,3 +422,314 @@ function ReadHT2(Version, fid, TTResult_NumberOfRecords)
     return channels, time_tags
 end
 
+function read_ptu_header(fid)
+    TTResultFormat_TTTRRecType = 0;
+    TTResult_NumberOfRecords = 0;
+    # MeasDesc_Resolution = 0;
+    # MeasDesc_GlobalResolution = 0;
+
+    print("1\n");
+    Magic = read(fid, 8); # , uint8
+    magString = String(Magic)[1:6]
+    if !("PQTTTR" == magString)
+        error("Magic invalid, this is not an PTU file.");
+    end;
+    Version = read(fid, 8);
+    Version = Version[Version .!= 0]; # remove #0 and more more readable
+    println("Tag Version: $(String(Version))");
+    TTResult_NumberOfRecords = nothing
+
+    # there is no repeat.. until (or do..while) construct so we use
+    # while 1 ... if (expr) break; end; end;
+    while true
+        # read Tag Head
+        TagIdent = read(fid, 32); # TagHead.Ident
+        TagIdent = TagIdent[TagIdent .!= 0]; # remove #0 and more more readable
+        TagIdx = read(fid, Int32);    # TagHead.Idx
+        TagTyp = read(fid, UInt32);   # TagHead.Typ
+                                            # TagHead.Value will be read in the
+                                            # right type function
+        TagIdent = String(TagIdent) # genvarname(TagIdent);    # remove all illegal characters
+        TagIdent = replace(TagIdent, !isascii=>' ')
+        if TagIdx > -1
+            EvalName = TagIdent*"($(TagIdx + 1))";
+        else
+            EvalName = TagIdent
+        end
+        @printf("\n   %-40s", EvalName)
+        # check Typ of Header
+        if TagTyp == tyEmpty8
+                read(fid, Int64)
+                print("<Empty>")
+        elseif  TagTyp == tyBool8
+                TagInt = read(fid, Int64);
+                if TagInt==0
+                    print("FALSE");
+                else
+                    print("TRUE");
+                end
+        elseif  TagTyp ==  tyInt8
+                TagInt = read(fid, Int64);
+                @printf("%d", TagInt);
+                if EvalName == "TTResult_NumberOfRecords"
+                    TTResult_NumberOfRecords = TagInt
+                elseif EvalName == "TTResultFormat_TTTRRecType"
+                    TTResultFormat_TTTRRecType = TagInt
+                end
+        elseif  TagTyp == tyBitSet64
+                TagInt = read(fid, Int64);
+                @printf("%X", TagInt);
+        elseif  TagTyp == tyColor8
+                TagInt = read(fid, Int64);
+                @printf("%X", TagInt);
+        elseif  TagTyp == tyFloat8
+                TagFloat = read(fid, Float64);
+                @printf("%e", TagFloat);
+                if EvalName == "MeasDesc_GlobalResolution"
+                    MeasDesc_GlobalResolution = TagFloat
+                end
+        elseif  TagTyp == tyFloat8Array
+                TagInt = read(fid, Int64);
+                print("<Float array with $(TagInt / 8) Entries>")
+                fseek(fid, TagInt);
+        elseif  TagTyp == tyTDateTime
+                TagFloat = read(fid, Float64);
+                #fprintf(1, '%s', datestr(datenum(1899,12,30)+TagFloat)); # display as Date String
+        elseif  TagTyp == tyAnsiString
+                TagInt = read(fid, Int64);
+                TagString = read(fid, TagInt)
+                TagString = String(TagString[TagString .!= 0])
+                # TagString = replace(TagString, !isascii=>' ')
+                if TagIdx > -1
+                    EvalName = "$(TagIdent){$(TagIdx + 1)}"
+                end;
+                println("$(TagString)")
+        elseif TagTyp == tyWideString
+                # Just read and remove the 0's (up to current (2012))
+                TagInt = read(fid, Int64)
+                TagString = read(fid, TagInt)
+                TagString = String(TagString[TagString .!= 0])
+                # TagString = replace(TagString, !isascii=>' ')
+                #TagString = TagString[TagString .!= 0]
+                println("$(TagString)")
+                if TagIdx > -1
+                    EvalName = "$(TagIdent){$(TagIdx + 1)}"
+                end;
+        elseif  TagTyp == tyBinaryBlob
+                TagInt = read(fid, Int64)
+                fprintf("<Binary Blob with $(TagInt) Bytes>")
+                seek(fid, TagInt)
+        else
+                error("Illegal Type identifier found! Broken file?")
+        end
+        if TagIdent == "Header_End"
+            break
+        end
+    end
+    print("\n----------------------\n");
+    return TTResultFormat_TTTRRecType, TTResult_NumberOfRecords
+end
+
+function readStr(fid, len)
+    bt = read(fid, len)
+    bt = bt[bt .!= 0]; # remove #0 and more more readable
+    return String(bt)
+end
+
+function read_pt3_header(fid)
+    # This code information is adapted from https://github.com/UU-cellbiology/PTU_Reader/blob/master/src/PTU_Reader_.java		
+
+    IdentString = readStr(fid, 16); 
+    println("Ident: $(IdentString)")
+
+    VersionString = readStr(fid, 6); 
+    println("format version: $(VersionString)")
+    if VersionString != "2.0"
+        error("Warning: This program is for version 2.0 only. Aborted.")
+    end
+
+    CreatorNameStr = readStr(fid, 18); 
+    println("creator name: $(CreatorNameStr)")
+    CreatorVersionStr = readStr(fid, 12); 
+    println("creator version: $(CreatorVersionStr)")		
+    FileTimeStr = readStr(fid, 18); 
+    println("creator version: $(FileTimeStr)")		
+
+    tmp = read(fid, 2); # skip 
+
+    CommentStr = readStr(fid, 256); 
+    println("Comment: $(CommentStr)")		
+
+    # 		//*******************************
+    # 		// Read T3 Header
+    # 		//*******************************
+
+    Curves = read(fid, Int32);
+    println("Nb of curves: $(Curves)")		
+
+    BitsPerRecord = read(fid, Int32);
+    println("bits per record: $(BitsPerRecord)")		
+
+    RoutingChannels = read(fid, Int32);
+    println("Nb of routing channels: $(RoutingChannels)")
+
+    NumberOfBoards = read(fid, Int32);
+    println("Nb of boards: $(NumberOfBoards)")
+
+    ActiveCurve = read(fid, Int32);
+    println("Nb of active curve: $(ActiveCurve)")
+
+    MeasMode = read(fid, Int32);
+    println("Measurement mode: $(MeasMode)")
+
+    SubMode = read(fid, Int32);
+    println("SubMode: $(SubMode)")
+
+    RangeNo = read(fid, Int32);
+    println("RangeNo: $(RangeNo)")
+
+    Offset = read(fid, Int32);
+    println("Offset (ns): $(Offset)")
+
+    Tacq = read(fid, Int32);
+    println("Acquisition time (ms): $(Tacq)")
+
+    StopAt = read(fid, Int32);
+    println("StopAt (counts): $(StopAt)")
+
+    StopOnOvfl = read(fid, Int32);
+    println("Stop On Overflow: $(StopOnOvfl)")
+
+    Restart = read(fid, Int32);
+    println("Restart:  $(Restart)")
+
+    DispLinLog = read(fid, Int32);
+    println("Display Lin/Log: $(DispLinLog)")
+
+    DispTimeFrom = read(fid, Int32);
+    println("Display Time Axis From (ns):  $(DispTimeFrom)")
+
+    DispTimeTo = read(fid, Int32);
+    println("isplay Time Axit To (ns): $(DispTimeTo)")
+
+    somebytes = read(fid, 108)  # Skipping display parameters
+
+    RepeatMode = read(fid, Int32);
+    println("Repeat Mode: $(RepeatMode)")
+
+    RepeatsPerCurve = read(fid, Int32);
+    println("Repeats Per Curve: $(RepeatsPerCurve)")
+
+    RepeatTime = read(fid, Int32);
+    println("RepeatTime: $(RepeatTime)")
+
+    RepeatWaitTime = read(fid, Int32);
+    println("RepeatWaitTime: $(RepeatWaitTime)")
+
+    ScriptNameStr = readStr(fid, 20);
+    println("ScriptName: $(ScriptNameStr)")
+
+    # 		//*******************************
+    # 		// Read Board Header
+    # 		//*******************************
+
+    HardwareStr = readStr(fid, 16);
+    println("ScriptName: $(HardwareStr)")
+
+    HardwareVer = readStr(fid, 8);
+    println("Hardware Verion: $(HardwareVer)")
+
+    HardwareSerial = read(fid, Int32);
+    println("Hardware Serial: $(HardwareSerial)")
+
+    SyncDivider = read(fid, Int32);
+    println("SyncDivider: $(SyncDivider)")
+
+    CFDZeroCross0 = read(fid, Int32);
+    println("CFDZeroCross (Ch0), (mV): $(CFDZeroCross0)")
+
+    CFDLevel0 = read(fid, Int32);
+    println("CFD Discr (Ch0), (mV): $(CFDLevel0)")
+
+    CFDZeroCross1 = read(fid, Int32);
+    println("CFD ZeroCross1 (Ch0), (mV): $(CFDZeroCross1)")
+
+    CFDLevel1 = read(fid, Int32);
+    println("CFD Discr (Ch1), (mV): $(CFDLevel1)")
+
+    Resolution = read(fid, Int32);
+    println("Resolution (ns): $(Resolution)")
+
+    somebytes = read(fid, 104)  # Skip router settings
+
+    # 		//*******************************
+    # 		// Read Specific T3 Header
+    # 		//*******************************
+
+    ExtDevices = read(fid, Int32);
+    println("ExtDevices: $(ExtDevices)")
+
+    Reserved1 = read(fid, Int32);
+    println("Reserved1: $(Reserved1)")
+
+    Reserved2 = read(fid, Int32);
+    println("Reserved2: $(Reserved2)")
+
+    CntRate0 = read(fid, Int32);
+    println("Count Rate (Ch0) (Hz): $(CntRate0)")
+
+    CntRate1 = read(fid, Int32);
+    println("Count Rate (Ch1) (Hz): $(CntRate1)")
+
+    StopAfter = read(fid, Int32);
+    println("StopAfter (ms): $(StopAfter)")
+
+    StopReason = read(fid, Int32);
+    println("StopReason: $(StopReason)")
+
+    Records = read(fid, Int32);
+    println("Records: $(Records)")
+
+    ImgHdrSize = read(fid, Int32);
+    println("Imaging Header Size (bytes): $(ImgHdrSize)")
+
+    if ImgHdrSize == 0
+        error("Not a FLIM image file!")
+    end
+
+    # 		//*******************************
+    # 		// Read Imaging Header
+    # 		//*******************************
+    # 		//	somebytes=new byte[ImgHdrSize*4];
+    # 		//	bBuff.get(somebytes,0,ImgHdrSize*4); // Skipping the Imaging header
+
+    Dimensions = read(fid, Int32);
+    println("Dimensions: $(Dimensions)")
+
+    IdentImg = read(fid, Int32);
+    println("IdentImg: $(IdentImg)")
+
+    nFrameMark = read(fid, Int32);
+    println("Frame mark: $(nFrameMark)")
+
+    nLineStart = read(fid, Int32);
+    println("LineStart: $(nLineStart)")
+
+    nLineStop = read(fid, Int32);
+    println("LineStop: $(nLineStop)")
+
+    Pattern = read(fid, 1);
+    println("Pattern: $(Pattern)")
+
+    somebytes = read(fid, 3); # Skipping TCPIP Protocol parameters
+
+    PixX = read(fid, Int32);
+    println("Image width (px): $(PixX)")
+
+    PixY = read(fid, Int32);
+    println("Image height (px): $(PixY)")
+
+    somebytes = read(fid, (ImgHdrSize-8)*4); # Skipping TCPIP Protocol parameters
+
+    return rtPicoHarpT3, Records
+end

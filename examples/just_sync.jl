@@ -48,3 +48,12 @@ q = read_flim(raw"C:\NoBackup\Data\FLIM\LSM_40.pt3",  sx = 256, data_channel=2, 
 q2 = reshape(q[:,1:14080,:,:], (256,256,55,128));
 @vv sum(q2,dims=(3,4))
 # q = read_flim(raw"C:\NoBackup\Data\FLIM\LSM_40.pt3",  sx = 256);
+
+# looks strange:
+using TimeTags, View5D
+# find out about the channels
+# read_flim(raw"C:\NoBackup\Data\FLIM\LSM_47.pt3")
+# always add one to the reported channel number!
+q = read_flim(raw"C:\NoBackup\Data\FLIM\LSM_47.pt3",  sx = 512, data_channel=2, marker_channel_z=22, marker_channel_y=18, is_bidirectional=false);
+q2 = reshape(q[:,1:28672,:,:], (512,512,56,128));
+@vv sum(q2,dims=(3,4))
